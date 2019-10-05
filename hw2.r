@@ -41,9 +41,26 @@ precision <- function(df)
     return ( TP(df) / ( TP(df) + FP(df)) )
 }
 
+sensitivity <- function(df)
+{
+    return ( TP(df) / ( TP(df) + FN(df)) )
+}
+
+specificity <- function(df)
+{
+    return ( TN(df) / ( TN(df) + FP(df)) )
+}
+
+F1Score <- function(df)
+{
+    return ((2 * precision(df) * sensitivity(df)) / (precision(df) + sensitivity(df)))
+}
 #checking that count = 181, so at least we are including all cases
 sum(TP(df) + TN(df) + FP(df) + FN(df))
 
 accuracy(df)
 classificationError(df)
 precision(df)
+sensitivity(df)
+specificity(df)
+F1Score(df)
