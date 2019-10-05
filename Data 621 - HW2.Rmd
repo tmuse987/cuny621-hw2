@@ -24,44 +24,20 @@ In this homework assignment, we are to work through various classification metri
 - To create graphical output that can be used to evaluate the output of classification models, such as binary logistic regression.
 
 ## Import data
-## 1. Download the classification output data set (attached in Blackboard to the assignment).
-
-1. Using the [read.csv](https://www.rdocumentation.org/packages/csv) function, we import the data and output the first 10 rows with the head function, using kable to format the output for readability. 
-1. We [attach](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/attach) the imported data, **class_data**, making its variables available to be referenced by name.
-1. Next, we store the **scored.class** *y-hat* predicted data and **class** *y* actual data in a vector variable, **dt**. The classes are denoted by 0 and 1, a common technique called dummy variables to make text catagories machine readable by coding them as numbers.  
 ```{r warning=FALSE, message=FALSE}
 library("knitr")
 class_data <- read.csv("classification-output-data.csv")
-class_data$class <- as.double(class_data$class + 1)
-class_data$scored.class <- as.double(class_data$scored.class +1)
-kable(class_data)
-sum(is.na(class_data))
-#attach(class_data)
- 
-#dt <- c(scored.class, class)
-#dt
+attach(class_data)
+
+dt <- c(scored.class, class)
 ```
 
 # Write R Functions
 
 ## Get the raw confusion matrix
-## 2. The data set has three key columns we will use:
-* class: the actual class for the observation
-* scored.class: the predicted class for the observation (based on a threshold of 0.5)
-* scored.probability: the predicted probability of success for the observation
-Use the table() function to get the raw confusion matrix for this scored dataset. Make sure you understand
-the output. In particular, do the rows represent the actual or predicted class? The columns?
-
-1. We wrap the predictions and actual results in a [table](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/table) which returns a raw confusion matrix and print out the table. 
-1. We observe that each column, (actual) class, categorizes the result by a false score (0) and a true score (1)-- Columns clasify results as true or false.  Each each row (predicted) scored.class categorizes the result by a negative score (0) and a positive score (1)--Rows classify results as in agreement, positive, or not in agreement, negative. 
-1. Therefore when the predicted class is negative (0) and the actual class is false (0), the result is a true negative; and 1 indictes agreement. Likewise when the actual and predcted class are both positive and true (1), the result is 1. In the same way, when the positive scores for class or scored.class differ from the other, the result is 0. A false positive result (a Type I error) refers to when the predicted result was positive. A false netgative result (a Type II error) refers to when the predicted result was negative. 
-1. The table index positions 1 and 2 are accessed with brackets and returned as a variable representing true-positives, true-negatives, false-positives, and false-negatives as printed below. 
-
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
-#cat(scored.class, class)
-tbl <- table(class_data$scored.class, class_data$class)
-print(tbl)
+tbl <- table(scored.class, class)
 
 kable(tbl)
 tn <- tbl[2,2]
@@ -79,7 +55,7 @@ print(paste0("False negative (FN) is: ", fn))
 
 ## Accuracy of the Predictions
 
-## 3.Write a function that takes the data set as a dataframe, with actual and predicted classifications identified, and returns the accuracy of the predictions.
+Write a function that takes the data set as a dataframe, with actual and predicted classifications identified, and returns the accuracy of the predictions.
 
 Accuracy : the proportion of the total number of predictions that were correct.
 
@@ -87,7 +63,7 @@ $$Accuracy = \frac {(TP + TN)}{(TP + FP + TN + FN)}$$
 
 ```{r warning=FALSE, message=FALSE}
 prd_accuracy <- function () {
-    accuracy = round((tp + tn) / (tp + fp + tn + fn),10)
+    accuracy = round((tp + tn) / (tp + fp + tn + fn),4)
     return (accuracy)
 }
 ```
@@ -96,16 +72,6 @@ prd_accuracy <- function () {
 result <- prd_accuracy()
 print(paste0("The prediction accuracy is: ", result))
 ```
-```{r}
-
-df_cd <- data.frame(class_data)
-dtp <- length(df_cd[df_cd["class"] == 1 && df_cd["scored.class"]==1])
-dfp <- length(df_cd[df_cd["class"] == 0 && df_cd["scored.class"]==1])
-dtn <- length(df_cd[df_cd["class"] == 0 && df_cd["scored.class"]==0])
-dfn <- length(df_cd[df_cd["class"] == 1 && df_cd["scored.class"]==0])
-sprintf("%.10f",((tp + tn) / (tp + fp + tn + fn)))
-```
-
 
 ## Classification Error Rate of the Predictions
 
@@ -204,49 +170,3 @@ Value <- round(c(prd_accuracy(), prd_class_error(), prd_precision(), prd_recall(
 df1 <- as.data.frame(cbind(Name, Value))
 kable(df1)
 ```
-
-# 12. Investigate the caret package. In particular, consider the functions confusionMatrix, sensitivity, and specificity. Apply the functions to the data set. How do the results compare with your own functions?
-
-TODO: investigate why remove na results in an error in the caret calls
-```{r warning=FALSE, message=FALSE}
-
-#library(heuristica)
-#confusionMatrixFor_Neg1_0_1(class, scored.class) 
-#install.packages('caret')
-#install.packages('e1071')
-library(caret)
- 
-
-class_data$class <- as.factor(class_data$class)
-class_data$scored.class <- as.factor(class_data$scored.class)
-
-#class <- factor(c(0,1))
-#scored.class <- factor(c(0,1))
-#levels(class)
-#levels(scored.class)
-#sum(is.na(class_data))
-#confusionMatrix(class, scored.class, positive = levels(scored.class)[1])
-#specificity(class, scored.class, positive = levels(scored.class)[1])
-#sensitivity(class, scored.class, positive = levels(scored.class)[1])
-confusionMatrix(class_data$class, class_data$scored.class, positive = "1")
-specificity(class_data$class, class_data$scored.class, positive = "1")
-sensitivity(class_data$class, class_data$scored.class, positive = "1")
-#pred<-class_data$scored.class  
-#lab <- class_data$class  
-#confusionMatrix(scored.class, class, positive="1")
-```
-
-## 13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results compare with your own functions?
-
-TODO: explain roc, check score
-```{r}
-#install.packages('pROC')
-library(pROC)
-df <- data.frame(class_data)
-class_data$class <- as.numeric(class_data$class)
-class_data$scored.class <- as.numeric(class_data$scored.class)
-cd_roc <- roc(class_data, class, scored.class, ret = c("roc", "coords", "all_coords"))
-cd_roc
-plot(cd_roc)
-```
-

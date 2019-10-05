@@ -32,8 +32,6 @@ In this homework assignment, we are to work through various classification metri
 ```{r warning=FALSE, message=FALSE}
 library("knitr")
 class_data <- read.csv("classification-output-data.csv")
-class_data$class <- as.double(class_data$class + 1)
-class_data$scored.class <- as.double(class_data$scored.class +1)
 kable(class_data)
 sum(is.na(class_data))
 #attach(class_data)
