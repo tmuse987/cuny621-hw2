@@ -241,10 +241,25 @@ TODO: explain roc, check score
 #install.packages('pROC')
 library(pROC)
 df <- data.frame(class_data)
-class_data$class <- as.numeric(class_data$class)
-class_data$scored.class <- as.numeric(class_data$scored.class)
-cd_roc <- roc(class_data, class, scored.class, ret = c("roc", "coords", "all_coords"))
+df$class <- as.numeric(df$class)
+df$scored.probability <- as.numeric(df$scored.probability)
+cd_roc <- roc(df, class, scored.probability)
 cd_roc
 plot(cd_roc)
+
+
 ```
+
+
+```{r}
+
+library(pROC)
+rocCurve <- roc(response = class_data$class, 
+                predictor = class_data$scored.probability,
+                levels = rev(levels(class_data$class)))
+auc(rocCurve)
+ci(rocCurve)
+plot(rocCurve, legacy.axes = TRUE)
+```
+
 
