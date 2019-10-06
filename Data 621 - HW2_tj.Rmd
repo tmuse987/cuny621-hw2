@@ -58,8 +58,7 @@ c. Therefore when the predicted class is negative (0) and the actual class is fa
 d. The table index positions 1 and 2 are accessed with brackets and returned as a variable representing true-positives, true-negatives, false-positives, and false-negatives as printed below. 
 
 ```{r warning=FALSE, message=FALSE}
-#cat(scored.class, class)
-tbl <- table(class_data$scored.class, class_data$class)
+(tbl <- table(class_data$scored.class, class_data$class))
 
 tn <- tbl[1,1]
 tp <- tbl[2,2]
@@ -70,7 +69,7 @@ fn <- tbl[1,2]
 
 ## Confusion matrix parameters 
 
-The confusuion matrix is as follows, were again columns are actual class, and rows are predicted class (scored.class):
+The confusion matrix is as follows, were again columns are actual class, and rows are predicted class (scored.class):
 
 $\begin{array}{|c|c|}
 \hline
@@ -242,15 +241,16 @@ The F1 score of the prediction is: `r result`
 
 The F score reaches the best value, meaning perfect precision and recall, at a value of 1. The worst F score, which means lowest precision and lowest recall, would be a value of 0. We can see this by observing that precision and sensitivity are also bound between 0 and 1. 
 
-For the max value we know that the numerator of $F_{1}Score$ has a maximum of 2, that is Pecision*Sensitivity=1 then multiplied by 2. The demoninator's maximum value is also 2 as max Precision + max Sensitivity is 1+1. The the maximum value of $F_{1}Score$ is 1
+For the max value we know that the numerator of $F_{1}Score$ has a maximum of 2, that is Precision*Sensitivity=1 then multiplied by 2. The denominators maximum value is also 2 as max Precision + max Sensitivity is 1+1. The the maximum value of $F_{1}Score$ is 1
 
 $$F_1 Score = \frac {2 * 1 * 1}{1 + 1} = \frac{2}{2} = 1$$
 
-For me minimum we simply observe that a Precision of Sensivity of zero will result in a $F_{1}Score$ of zero.
+For the minimum we simply observe that a Precision or Sensitivity of zero will result in a $F_{1}Score$ of zero.
 
 ## ROC Function
 10. Write a function that generates an ROC curve from a data set with a true classification column (class in our example) and a probability column (scored.probability in our example). Your function should return a list that includes the plot of the ROC curve and a vector that contains the calculated area under the curve (AUC). Note that I recommend using a sequence of thresholds ranging from 0 to 1 at 0.01 intervals.
 
+The function generates the ROC by calculating true positives (TP) and false negatives (FN) for all possibles thresholds between 0 and 1 with increments of 0.01. The area under the curve under the curve AUC is calculated by multiplying each increment in FP by the TP, which gives us the area under the ROC. Then the AUC is calculated by dividing that area by the total possible area given by multiplying the maximum TP by the maximum FP.
 
 ```{r}
 ROC<-function(df) {
@@ -258,23 +258,21 @@ ROC<-function(df) {
   df$scored.class <- as.numeric(as.character(df$scored.class))
   TP<-vector()
   FP<-vector()
-  AUC<-0
   for(t in seq(0,1,0.01)) {
     TP<-c(TP,nrow(df[which(df$class==1 & df$scored.probability>t),]))
     FP<-c(FP,nrow(df[which(df$class==0 & df$scored.probability>t),]))
-    #AUC<-AUC+FP*TP
   }
   smoothingSpline = smooth.spline(FP, TP, spar=0.35)
   plot(FP,TP)
   lines(smoothingSpline)
-  #return(AUC/(max(TP)*max(FP)))
+  AUC<-sum(abs(c(diff(FP,1),0)*TP))/(max(TP)*max(FP))
+  return(AUC)
 }
 
-ROC(class_data)
+auc<-ROC(class_data)
 ```
 
-
-
+The calculated AUC is `r auc`
 
 ## All Classification Metrics
 11. Use your created R functions and the provided classification output data set to produce all of the classification metrics discussed above.
@@ -290,62 +288,75 @@ kable(df1)
 #Caret Package 
 12. Investigate the caret package. In particular, consider the functions confusionMatrix, sensitivity, and specificity. Apply the functions to the data set. How do the results compare with your own functions?
 
-TODO: investigate why remove na results in an error in the caret calls
-```{r warning=FALSE, message=FALSE}
+We first run the confusionMatrix function from the caret package
 
-#library(heuristica)
-#confusionMatrixFor_Neg1_0_1(class, scored.class) 
-#install.packages('caret')
-#install.packages('e1071')
+```{r warning=FALSE, message=FALSE}
 library(caret)
  
-
 class_data$class <- as.factor(class_data$class)
 class_data$scored.class <- as.factor(class_data$scored.class)
 
-#class <- factor(c(0,1))
-#scored.class <- factor(c(0,1))
-#levels(class)
-#levels(scored.class)
-sum(is.na(class_data))
-#confusionMatrix(class, scored.class, positive = levels(scored.class)[1])
-#specificity(class, scored.class, positive = levels(scored.class)[1])
-#sensitivity(class, scored.class, positive = levels(scored.class)[1])
-confusionMatrix(class_data$class, class_data$scored.class, positive = "1")
-sensitivity(class_data$class, class_data$scored.class, positive = "1")
-specificity(class_data$class, class_data$scored.class, positive = "1")
-#pred<-class_data$scored.class  
-#lab <- class_data$class  
-#confusionMatrix(scored.class, class, positive="1")
+(cm<-confusionMatrix(class_data$scored.class, class_data$class, positive = "1"))
+```
+
+Now we can compare these results with the one computed with our functions and confirm we obtain the same result:
+
+Accuracy
+```{r}
+round(cm$overall[1],4)==round(prd_accuracy(),4)
+```
+
+Sensitivity
+```{r}
+round(cm$byClass[1],4)==round(prd_recall(),4)
+```
+
+Specificity
+```{r}
+round(cm$byClass[2],4)==round(prd_specificity(),4)
+```
+
+Precision
+```{r}
+round(cm$byClass[5],4)==round(prd_precision(),4)
+```
+
+F1
+```{r}
+round(cm$byClass[7],3)==round(prd_f1_score(),3)
+```
+
+We can also explore the two caret function for Sensitivity and Specificity.
+
+Sensitivity.
+```{r warning=FALSE, message=FALSE}
+(c_sen<-sensitivity(class_data$scored.class, class_data$class, positive = "1"))
+round(c_sen,4)==prd_recall()
+```
+
+Specificity
+```{r warning=FALSE, message=FALSE}
+(c_spe<-specificity(class_data$scored.class, class_data$class, positive = "1"))
+round(c_spe,4)==prd_specificity()
 ```
 
 #pROC Package
 13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results compare with your own functions?
 
-TODO: explain roc, check score
-```{r}
+The ROC curve can be plotted using Specificity and Sensitivity as the axis. This is equivalent to the FP and TP axis plot we performed previously and these two metrics are are calculated using FP and TP. With this in mind we find both the ROC plotted with our previous function and that plotted with the pROC ROC function are similar graphs. 
+
+```{r warning=FALSE, message=FALSE}
 #install.packages('pROC')
 library(pROC)
-df <- data.frame(class_data)
-df$class <- as.numeric(df$class)
-df$scored.probability <- as.numeric(df$scored.probability)
-cd_roc <- roc(df, class, scored.probability)
-cd_roc
-plot(cd_roc)
-
-
+rocCurve <- roc(response = class_data$class, 
+                predictor = class_data$scored.probability)
+plot(rocCurve, legacy.axes = TRUE)
 ```
 
+We can also confirm the AUC calculated previously is the same as calculated by the AUC pROC function.
 
 ```{r}
-
-library(pROC)
-rocCurve <- roc(response = class_data$class, 
-                predictor = class_data$scored.probability,
-                levels = rev(levels(class_data$class)))
-auc(rocCurve)
-ci(rocCurve)
-plot(rocCurve, legacy.axes = TRUE)
+round(auc(rocCurve),2)==round(auc,2)[1]
 ```
 
 
