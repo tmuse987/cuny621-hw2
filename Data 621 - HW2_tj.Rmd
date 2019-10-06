@@ -337,7 +337,7 @@ round(c_sen,4)==prd_recall()
 
 Specificity
 ```{r warning=FALSE, message=FALSE}
-(c_spe<-specificity(class_data$scored.class, class_data$class, positive = "1"))
+(c_spe<-specificity(class_data$scored.class, class_data$class, negative = "0"))
 round(c_spe,4)==prd_specificity()
 ```
 
