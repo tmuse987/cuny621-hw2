@@ -6,6 +6,7 @@ output:
   html_document:
     number_sections: yes
     theme: paper
+    css: style.css
     toc: yes
     toc_depth: 2
     toc_float: yes
@@ -285,7 +286,7 @@ df1 <- as.data.frame(cbind(Name, Value))
 kable(df1)
 ```
 
-#Caret Package 
+# Caret Package 
 12. Investigate the caret package. In particular, consider the functions confusionMatrix, sensitivity, and specificity. Apply the functions to the data set. How do the results compare with your own functions?
 
 We first run the confusionMatrix function from the caret package
@@ -340,7 +341,7 @@ Specificity
 round(c_spe,4)==prd_specificity()
 ```
 
-#pROC Package
+# pROC Package
 13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results compare with your own functions?
 
 The ROC curve can be plotted using Specificity and Sensitivity as the axis. This is equivalent to the FP and TP axis plot we performed previously and these two metrics are are calculated using FP and TP. With this in mind we find both the ROC plotted with our previous function and that plotted with the pROC ROC function are similar graphs. 
