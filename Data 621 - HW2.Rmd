@@ -26,6 +26,8 @@ In this homework assignment, we are to work through various classification metri
 ## Import data
 ```{r warning=FALSE, message=FALSE}
 library("knitr")
+library("ggplot2")
+library(pROC)
 class_data <- read.csv("classification-output-data.csv")
 attach(class_data)
 
@@ -160,6 +162,61 @@ result <- prd_f1_score()
 print(paste0("The F1 score of the prediction is: ", result))
 ```
 
+## Plot the ROC Curve and Compute the AUC
+
+Below is the plot of the Receiver Operating Characteristic (ROC) curve, as well as the results of a function computed the area under a curve (AUC).
+
+```{r, echo=FALSE, warning=FALSE}
+# computeROCAUC <- function(df, class, probability)
+# {
+#     df <- df[order(df[probability], decreasing = TRUE),]
+#     response <- as.numeric(unlist(c(0,df[class])))
+#     x <- cumsum(df[class] == 0)/57
+#     y <- cumsum(df[class] == 1)/57
+#     # plot from ROC package
+#     #plot(x, y, type = 'l')
+#     g <- ggplot(data = df, aes(x, y))  + geom_line()
+#  
+#     area <- cumsum(df$class)/57  * 1/181
+# 
+#     
+#     return(list(g,area))
+# }
+computeROCAUC <- function(df, class, probability)
+{
+    #df <- rbind(df, data.frame(class = 0, scored.class = 0, scored.probability = 0))
+    df <- df[order(df[probability], decreasing = FALSE),]
+    y <- cumsum(df[class] == 0)/sum(df[class]==0)
+    df <- df[order(df[probability], decreasing = TRUE),]
+    x = cumsum(df[class] == 1)/sum(df[class]!=0)
+    x = 1- x[order(x, decreasing = TRUE)]
+    dfXY <- data.frame(x= x, y=y)
+    g <- ggplot(data = dfXY, aes(x, y))  + geom_line()
+    
+    #compute area by adding up all the individual slices of area
+    xPrev <- x[1]
+    area <- 0
+    for(i in seq(2,length(x)-1))
+    {
+        if(x[i] != xPrev)
+        {
+            area <- area + ((x[i] - xPrev) * y[i])
+            xPrev <- x[i]
+        }
+    }
+    area <- area + ((x[length(x)] - xPrev) * y[length(x)] )
+    
+    
+    return(list(g,area))
+}
+```
+
+```{r, echo=FALSE, warning=FALSE}
+rocResults <- computeROCAUC(class_data, "class", "scored.probability")
+rocResults[[1]]
+print(paste("The area under the curve was computed as: ", round(sum(unlist(rocResults[2])),4)))
+```
+
 ## All Classification Metrics
 Use your created R functions and the provided classification output data set to produce all of the classification metrics discussed above.
 
@@ -169,4 +226,26 @@ Name <- c('Accuracy','Classification Error Rate', 'Precision', 'Sensitivity','Sp
 Value <- round(c(prd_accuracy(), prd_class_error(), prd_precision(), prd_recall(), prd_specificity(), prd_f1_score()),4)
 df1 <- as.data.frame(cbind(Name, Value))
 kable(df1)
+```
+
+## Investigate the pROC Package
+
+The pRoc package simplifies the generation of ROC curves. Below are two plots, one plotted with pROC and one plotted with the data from our function.  Note they match essentially exactly.
+
+We can compare the sensitivity and s
+
+```{r warning=FALSE, message=FALSE}
+rocPkg <- roc(class ~ scored.probability, data = class_data)
+#plot(rocPkg$sensitivities, rocPkg$specificities , legacy.axes = TRUE, xlim=range(0,1))
+g1 <- ggplot(data.frame(sensitivities = rocPkg$sensitivities, specificities = rocPkg$specificities), aes(1-sensitivities, specificities))  +
+    geom_line() +
+    ggtitle("Graph from Data from the pROC Package")
+
+require(gridExtra)
+
+g2 <- rocResults[[1]] + # graph from above
+    ggtitle("Graph using data from our function.")
+
+gridExtra::grid.arrange(g1,g2)
+
 ```
