@@ -3,16 +3,19 @@ title: "Data 621 - Homework 2"
 author: "Group 1"
 date: "October, 2019"
 output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
+    css: style.css
     number_sections: yes
     theme: paper
-    css: style.css
     toc: yes
     toc_depth: 2
     toc_float: yes
-  word_document:
+  pdf_document:
     toc: yes
-    toc_depth: '2'    
+    toc_depth: '2'
 ---
 
 # Overview
@@ -31,6 +34,7 @@ Using the [read.csv](https://www.rdocumentation.org/packages/csv) function we [a
 
 ```{r, echo = F, warning=FALSE, message=FALSE}
 library("knitr")
+library(ggplot2)
 class_data <- read.csv("classification-output-data.csv")
 kable(head(class_data,n=10), caption='Classification Output Dataset')
 ```
@@ -250,26 +254,49 @@ For the minimum we simply observe that a Precision or Sensitivity of zero will r
 ## ROC Function
 **10. Write a function that generates an ROC curve from a data set with a true classification column (class in our example) and a probability column (scored.probability in our example). Your function should return a list that includes the plot of the ROC curve and a vector that contains the calculated area under the curve (AUC). Note that I recommend using a sequence of thresholds ranging from 0 to 1 at 0.01 intervals. **
 
-The function generates the ROC by calculating true positives (TP) and false negatives (FN) for all possibles thresholds between 0 and 1 with increments of 0.01. The area under the curve under the curve AUC is calculated by multiplying each increment in FP by the TP, which gives us the area under the ROC. Then the AUC is calculated by dividing that area by the total possible area given by multiplying the maximum TP by the maximum FP.
+The function generates the ROC by calculating true positives (TP) and false negatives (FN) between 0 and 1 with increments of 1 divided by the size of the dataset (181 in this case). The area under the curve under the curve AUC is calculated by multiplying each increment in FP by the max TP for that increment, which gives us the area under the ROC. 
+Note the plot is our roc function given spline interpolation during plotting.
 
-```{r}
-ROC<-function(df) {
-  df$class <- as.numeric(as.character(df$class))
-  df$scored.class <- as.numeric(as.character(df$scored.class))
-  TP<-vector()
-  FP<-vector()
-  for(t in seq(0,1,0.01)) {
-    TP<-c(TP,nrow(df[which(df$class==1 & df$scored.probability>t),]))
-    FP<-c(FP,nrow(df[which(df$class==0 & df$scored.probability>t),]))
-  }
-  smoothingSpline = smooth.spline(FP, TP, spar=0.35)
-  plot(FP,TP)
-  lines(smoothingSpline)
-  AUC<-sum(abs(c(diff(FP,1),0)*TP))/(max(TP)*max(FP))
-  return(AUC)
+```{r, echo=FALSE, warning=FALSE}
+
+computeROCAUC <- function(df, class, probability)
+{
+    
+    df <- df[order(df[probability], decreasing = FALSE),]
+    y <- cumsum(df[class] == 0)/sum(df[class]==0)
+    df <- df[order(df[probability], decreasing = TRUE),]
+    x = cumsum(df[class] == 1)/sum(df[class]!=0)
+    x = 1- x[order(x, decreasing = TRUE)]
+    dfXY <- data.frame(x= x, y=y)
+    g <- g <- ggplot(data = dfXY, aes(x, y)) + xlab("1-Sensitivities")+ ylab("Specificity") + geom_line()
+    spline.d <- as.data.frame(spline(dfXY$x, dfXY$y))
+    
+    g_smooth <- ggplot(data = spline.d, aes(x, y)) + xlab("1-Sensitivities")+ ylab("Specificity")  + geom_line() 
+    
+    
+    #compute area by adding up all the individual slices of area
+    xPrev <- x[1]
+    area <- 0
+    for(i in seq(2,length(x)-1))
+    {
+        if(x[i] != xPrev)
+        {
+            area <- area + ((x[i] - xPrev) * y[i])
+            xPrev <- x[i]
+        }
+    }
+    area <- area + ((x[length(x)] - xPrev) * y[length(x)] )
+    
+    return(list(g,g_smooth, area))
 }
+```
 
-auc<-ROC(class_data)
+
+```{r, echo=FALSE, warning=FALSE}
+rocResults <- computeROCAUC(class_data, "class", "scored.probability")
+rocResults[[2]]
+auc <- round(sum(unlist(rocResults[3])),2)
+#print(paste("The area under the curve was computed as: ", round(sum(unlist(rocResults[2])),4)))
 ```
 
 The calculated AUC is **`r auc`**
@@ -344,19 +371,30 @@ round(c_spe,4)==prd_specificity()
 **13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results compare with your own functions? **
 
 The ROC curve can be plotted using Specificity and Sensitivity as the axis. This is equivalent to the FP and TP axis plot we performed previously and these two metrics are calculated using FP and TP. With this in mind we find both the ROC plotted with our previous function and that plotted with the pROC ROC function are similar graphs. 
+Note in this case our plotted graph is not done with spline interpolation, so as to more closely match the output from the pROC graph.
 
 ```{r warning=FALSE, message=FALSE}
-#install.packages('pROC')
 library(pROC)
 rocCurve <- roc(response = class_data$class, 
                 predictor = class_data$scored.probability)
-plot(rocCurve, legacy.axes = TRUE)
+g1 <- ggplot(data.frame(sensitivities = rocCurve$sensitivities, specificities = rocCurve$specificities), aes(1-sensitivities, specificities))  +
+    geom_line() +
+    ggtitle("Graph from Data from the pROC Package")
+
+require(gridExtra)
+
+g2 <- rocResults[[1]] + # graph from above
+    ggtitle("Graph using data from our function.")
+
+gridExtra::grid.arrange(g1,g2)
 ```
 
-We can also confirm the AUC calculated previously is the same as calculated by the AUC pROC function.
+We can also confirm the AUC calculated previously is almost identical to that calculated by the AUC pROC function.
 
-```{r}
-round(auc(rocCurve),2)==round(auc,2)[1]
+```{r warning=FALSE, message=FALSE}
+aucPROC <- round(auc(rocCurve),2)
+aucOurs <- round(sum(unlist(rocResults[3])),2)
+
 ```
-
-
+The calculated AUC from the pRoc package is **`r aucPROC`**
+The calculated AUC from our function is **`r aucOurs`**
