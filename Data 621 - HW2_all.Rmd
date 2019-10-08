@@ -371,7 +371,6 @@ round(c_spe,4)==prd_specificity()
 **13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results compare with your own functions? **
 
 The ROC curve can be plotted using Specificity and Sensitivity as the axis. This is equivalent to the FP and TP axis plot we performed previously and these two metrics are calculated using FP and TP. With this in mind we find both the ROC plotted with our previous function and that plotted with the pROC ROC function are similar graphs. 
-Note in this case our plotted graph is not done with spline interpolation, so as to more closely match the output from the pROC graph.
 
 Defining the partcial AUC (pAUC) and also showing th pAUC as a polygon
 
@@ -414,6 +413,11 @@ ci=TRUE, of="thresholds", # compute AUC (of threshold)
 thresholds="best", # select the (best) threshold
 print.thres="best") # also highlight this threshold on the plot
 ```
+
+Here we plot our ROC against the graph generated from the base pROC graph.
+
+Note in this case our plotted graph is not done with spline interpolation, so as to more closely match the output from the pROC graph.
+
 
 ```{r warning=FALSE, message=FALSE}
 library(pROC)
