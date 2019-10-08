@@ -345,32 +345,34 @@ round(c_spe,4)==prd_specificity()
 
 The ROC curve can be plotted using Specificity and Sensitivity as the axis. This is equivalent to the FP and TP axis plot we performed previously and these two metrics are calculated using FP and TP. With this in mind we find both the ROC plotted with our previous function and that plotted with the pROC ROC function are similar graphs. 
 
+Defining the partcial AUC (pAUC) and also showing th pAUC as a polygon
+
 ```{r warning=FALSE, message=FALSE}
 if(!require(pROC)) install.packages("pROC")
-plot.roc(class_data$class,class_data$scored.probability,          # data
+plot.roc(class_data$class,class_data$scored.probability,        
          percent = TRUE,                    # show all values in percent
          partial.auc=c(100, 90), 
-         partial.auc.correct=TRUE,          # define a partial AUC (pAUC)
+         partial.auc.correct=TRUE,
          print.auc=TRUE,                    
          #display pAUC value on the plot with following options:
          print.auc.pattern = "Corrected pAUC (100-90%% SP):\n%.1f%%",
          print.auc.col = "#1c61b6",
          auc.polygon = TRUE, 
-         auc.polygon.col = "#1c61b6",       # show pAUC as a polygon
+         auc.polygon.col = "#1c61b6",     
          max.auc.polygon = TRUE, 
-         max.auc.polygon.col = "#1c61b622", # also show the 100% polygon
+         max.auc.polygon.col = "#1c61b622",
          main = "Partial AUC (pAUC)")
 plot.roc(class_data$class,class_data$scored.probability,
          percent = TRUE, 
          add = TRUE, 
-         type = "n",                        # add to plot, but don't re-add the ROC itself (useless)
+         type = "n",                        
          partial.auc = c(100, 90), 
          partial.auc.correct = TRUE,
          partial.auc.focus = "se",          # focus pAUC on the sensitivity
          print.auc = TRUE, 
          print.auc.pattern = "Corrected pAUC (100-90%% SE):\n%.1f%%", 
          print.auc.col = "#008600",
-         print.auc.y = 40,                  # do not print auc over the previous one
+         print.auc.y = 40,                  
          auc.polygon = TRUE, 
          auc.polygon.col = "#008600",
          max.auc.polygon = TRUE, 
