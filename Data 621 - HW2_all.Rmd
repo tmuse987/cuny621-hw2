@@ -3,9 +3,6 @@ title: "Data 621 - Homework 2"
 author: "Group 1"
 date: "October, 2019"
 output:
-  word_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
     css: style.css
     number_sections: yes
@@ -13,6 +10,9 @@ output:
     toc: yes
     toc_depth: 2
     toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '2'
   pdf_document:
     toc: yes
     toc_depth: '2'
@@ -263,16 +263,18 @@ computeROCAUC <- function(df, class, probability)
 {
     
     df <- df[order(df[probability], decreasing = FALSE),]
-    y <- cumsum(df[class] == 0)/sum(df[class]==0)
+    x <- 1-cumsum(df[class] == 0)/sum(df[class]==0)
     df <- df[order(df[probability], decreasing = TRUE),]
-    x = cumsum(df[class] == 1)/sum(df[class]!=0)
-    x = 1- x[order(x, decreasing = TRUE)]
+    y = cumsum(df[class] == 1)/sum(df[class]!=0)
+    y = y[order(y, decreasing = TRUE)]
     dfXY <- data.frame(x= x, y=y)
-    g <- g <- ggplot(data = dfXY, aes(x, y)) + xlab("1-Sensitivities")+ ylab("Specificity") + geom_line()
-    spline.d <- as.data.frame(spline(dfXY$x, dfXY$y))
-    
-    g_smooth <- ggplot(data = spline.d, aes(x, y)) + xlab("1-Sensitivities")+ ylab("Specificity")  + geom_line() 
-    
+    dfXY <- dfXY[order(dfXY$x, dfXY$y),]
+    g <- g <- ggplot(data = dfXY, aes(x,y)) + xlab("1-Specificity")+ ylab("Sensitivities") + geom_line()
+    spline.d <- smooth.spline(dfXY$x,  dfXY$y, spar= 0.35)
+    spline.d <- data.frame(x = spline.d$x, y= spline.d$y)
+
+    g_smooth <- ggplot(data = spline.d, aes(x, y)) + xlab("1-Specificity")+ ylab("Sensitivities")  + geom_line() 
+   
     
     #compute area by adding up all the individual slices of area
     xPrev <- x[1]
@@ -287,7 +289,7 @@ computeROCAUC <- function(df, class, probability)
     }
     area <- area + ((x[length(x)] - xPrev) * y[length(x)] )
     
-    return(list(g,g_smooth, area))
+    return(list(g,g_smooth, area, spline.d))
 }
 ```
 
@@ -296,7 +298,7 @@ computeROCAUC <- function(df, class, probability)
 rocResults <- computeROCAUC(class_data, "class", "scored.probability")
 rocResults[[2]]
 auc <- round(sum(unlist(rocResults[3])),2)
-#print(paste("The area under the curve was computed as: ", round(sum(unlist(rocResults[2])),4)))
+write.csv(rocResults[4], "rc.csv")
 ```
 
 The calculated AUC is **`r auc`**
@@ -423,7 +425,10 @@ Note in this case our plotted graph is not done with spline interpolation, so as
 library(pROC)
 rocCurve <- roc(response = class_data$class, 
                 predictor = class_data$scored.probability)
-g1 <- ggplot(data.frame(sensitivities = rocCurve$sensitivities, specificities = rocCurve$specificities), aes(1-sensitivities, specificities))  +
+rc <- data.frame(specificities = 1-rocCurve$specificities, sensitivities = rocCurve$sensitivities)
+rc <- rc[order(rc$specificities, rc$sensitivities),]
+
+g1 <- ggplot(rc, aes(specificities, sensitivities))  + xlab("1-Specificity")+ ylab("Sensitivities") +
     geom_line() +
     ggtitle("Graph from Data from the pROC Package")
 
@@ -439,7 +444,7 @@ We can also confirm the AUC calculated previously is almost identical to that ca
 
 ```{r warning=FALSE, message=FALSE}
 aucPROC <- round(auc(rocCurve),2)
-aucOurs <- round(sum(unlist(rocResults[3])),2)
+aucOurs <- abs(round(sum(unlist(rocResults[3])),2))
 
 ```
 The calculated AUC from the pRoc package is **`r aucPROC`**
