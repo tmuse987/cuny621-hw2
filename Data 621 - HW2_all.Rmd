@@ -257,7 +257,7 @@ For the minimum we simply observe that a Precision or Sensitivity of zero will r
 The function generates the ROC by calculating true positives (TP) and false negatives (FN) between 0 and 1 with increments of 1 divided by the size of the dataset (181 in this case). The area under the curve under the curve AUC is calculated by multiplying each increment in FP by the max TP for that increment, which gives us the area under the ROC. 
 Note the plot is our roc function given spline interpolation during plotting.
 
-```{r, echo=FALSE, warning=FALSE}
+```{r, warning=FALSE}
 
 computeROCAUC <- function(df, class, probability)
 {
@@ -294,7 +294,7 @@ computeROCAUC <- function(df, class, probability)
 ```
 
 
-```{r, echo=FALSE, warning=FALSE}
+```{r, warning=FALSE}
 rocResults <- computeROCAUC(class_data, "class", "scored.probability")
 rocResults[[2]]
 auc <- round(sum(unlist(rocResults[3])),2)
